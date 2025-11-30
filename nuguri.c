@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <termios.h>
+
 #include <fcntl.h>
 #include <time.h>
 
@@ -11,6 +11,14 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#endif
+
+#ifdef linux
+#include <termios.h>
+#endif
+
+#ifdef __MACH__
+#include <termios.h>
 #endif
 
 // 맵 및 게임 요소 정의 (수정된 부분)
