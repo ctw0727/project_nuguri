@@ -13,7 +13,7 @@
 struct termios orig_termios;
 
 void clrscr();
-void delay(int);
+void delay(int t);
 void disable_raw_mode();
 void enable_raw_mode();
 int getch();
