@@ -8,6 +8,9 @@
 
 #define LF "\r\n"
 
+void clrscr();
+void delay(int);
+
 void clrscr() {
     system("cls");
 	return;
