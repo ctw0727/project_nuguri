@@ -5,6 +5,7 @@
 
 #include <termios.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #define LF "\r" 
 
