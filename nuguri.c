@@ -4,15 +4,15 @@
 #include <time.h>
 
 #ifdef _WIN32
-#include <window.h>
+#include "window.h"
 #endif
 
 #ifdef linux
-#include <linux.h>
+#include "linux.h"
 #endif
 
 #ifdef __MACH__
-#include <macos.h>
+#include "macos.h"
 #endif
 
 
@@ -44,7 +44,7 @@ typedef struct {
 //char map[MAX_STAGES][MAP_HEIGHT][MAP_WIDTH + 1];
 int MAP_HEIGHT;
 int MAP_WIDTH;
-int*** map;
+char*** map;
 
 int player_x, player_y;
 int stage = 0;
@@ -103,7 +103,7 @@ int main() {
 
         update_game(c);
         draw_game();
-        usleep(90000);
+        delay(90);
 
         if (map[stage][player_y][player_x] == 'E') {
             stage++;
@@ -383,6 +383,8 @@ void opening(){
 		else printf("           START      > EXIT");
 		
 		c = getch();
+		if (c==-32) c = getchar();
+		
 		if (c==LEFT && select!=0) select--;
 		else if (c==RIGHT && select!=1) select++;
 		else if (c== LF[0]) break;
