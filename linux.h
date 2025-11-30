@@ -9,10 +9,13 @@
 
 #define LF "\n" 
 
+// 터미널 설정
 struct termios orig_termios;
 
 void clrscr();
 void delay(int);
+void disable_raw_mode();
+void enable_raw_mode();
 int getch();
 int kbhit();
 
@@ -26,6 +29,20 @@ void clrscr() {
 void delay(int t){
 	usleep(t*1000);
 	return;
+}
+
+// 터미널 Raw 모드 활성화/비활성화
+void disable_raw_mode() ////Raw 모드란? 터미널 원시 모드 - Raw모드에서 시스템은 입력된 문자를 사용자 프로그램으로 즉시 전달
+{ 
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios); 
+}
+
+void enable_raw_mode() {
+    tcgetattr(STDIN_FILENO, &orig_termios);
+    atexit(disable_raw_mode);
+    struct termios raw = orig_termios;
+    raw.c_lflag &= ~(ECHO | ICANON);
+    tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 }
 
 int getch() {
