@@ -4,6 +4,7 @@
 
 
 #include <termios.h>
+#include <unistd.h>
 
 #define LF "\n" 
 
@@ -11,6 +12,12 @@ void clrscr() {
     printf("\x1b[2J\x1b[H");
     fflush(stdout);
     return;
+}
+
+// 밀리초 단위로 동작
+void delay(int t){
+	usleep(t*1000);
+	return;
 }
 
 int getch() {
