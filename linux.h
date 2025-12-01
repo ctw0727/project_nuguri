@@ -1,7 +1,9 @@
 
-
-
-
+/*
+linux.h : 리눅스 운영체제에서 참조하기 위해 만든 헤더파일,
+코드 내부에서 공용으로 쓰이는 함수들을 운영체제에 맞게 정리했습니다.
+안정적인 참조를 위해 컴파일 시 -D linux 를 옵션으로 추가해주세요.
+*/
 
 #include <termios.h>
 #include <unistd.h>
@@ -12,23 +14,29 @@
 // 터미널 설정
 struct termios orig_termios;
 
-void clrscr();
-void delay(int t);
-void disable_raw_mode();
-void enable_raw_mode();
-int getch();
-int kbhit();
+void clrscr(); // 화면 클리어 함수
+void delay(int t); // 마이크로초단위 sleep 함수
+void disable_raw_mode(); // 입력된 문자를 사용자 프로그램으로 즉시 전달하는 터미널 RAW 모드 관련 함수 (RAW모드 비활성화)
+void enable_raw_mode(); // RAW모드 활성화
+int getch(); // linux/MacOS에서 활용하기 위한 getch 함수 구현
+int kbhit(); // linux/MacOS에서 활용하기 위한 kbhit 함수 구현
+void gotoxy(int x, int y); // 커서위치 draw 함수
 
 void clrscr() {
-    printf("\x1b[2J\x1b[H");
-    fflush(stdout);
+    printf("\x1b[2J\x1b[1;1H"); // ANSI 이스케이프 함수로 화면 클리어하고 1열 1행으로 커서 이동.
+    fflush(stdout); // fflush로 출력버퍼 초기화, ANSI 이스케이프 함수 안정적 실행을 도움.
     return;
 }
 
 // 밀리초 단위로 동작
 void delay(int t){
-	usleep(t*1000);
+	usleep(t*1000); //마이크로초단위로 동작하므로 1000 곱해서 밀리초로 단위 조정
 	return;
+}
+
+void gotoxy(int x, int y) {
+    printf("\033[%d;%dH", y, x); // ANSI 이스케이프 함수 이용해 1열 1행으로 커서 이동.
+    fflush(stdout); // fflush로 출력버퍼 초기화, ANSI 이스케이프 함수 안정적 실행을 도움.
 }
 
 // 터미널 Raw 모드 활성화/비활성화
