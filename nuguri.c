@@ -305,12 +305,27 @@ void move_enemies() {
 // 충돌 감지 로직
 void check_collisions() {
     for (int i = 0; i < enemy_count; i++) {
-        if (player_x == enemies[i].x && player_y == enemies[i].y) {
-            score = (score > 50) ? score - 50 : 0;
+    if (player_x == enemies[i].x && player_y == enemies[i].y) {
+        // 적과 충돌: 체력 감소
+        hp--;
+        // 점수 패널티는 유지(원하면 제거 가능)
+        score = (score > 50) ? score - 50 : 0;
+
+        if (hp <= 0) {
+            // 게임 오버 처리: 화면 정리 후 종료
+            printf("\x1b[2J\x1b[H");
+            printf("게임 오버! HP가 모두 소진되었습니다.\n");
+            printf("최종 점수: %d\n", score);
+            disable_raw_mode();
+            exit(0);
+        } else {
+            // 체력이 남아있으면 현재 스테이지 재시작 (플레이어 위치 초기화)
             init_stage();
             return;
         }
     }
+}
+
     for (int i = 0; i < coin_count; i++) {
         if (!coins[i].collected && player_x == coins[i].x && player_y == coins[i].y) {
             coins[i].collected = 1;
