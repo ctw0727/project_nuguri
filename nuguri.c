@@ -15,10 +15,8 @@
 
 #ifdef _WIN32
     #include <windows.h>   // Beep() 함수 사용
-    #define newline '\n' 
 #else
     #include <unistd.h>    // usleep 같은 거 이미 쓰고 있을 수도 있어서 (맥/리눅스)
-    #define newline '\r' 
 #endif
 
 
@@ -49,11 +47,6 @@ int stage = 0;
 int score = 0;
 
 int hp = MAX_HP; // 플레이어 체력(초기값은 MAX_HP)
-
-
-int player_x, player_y;
-int stage = 0;
-int score = 0;
 
 // 플레이어 상태
 int is_jumping = 0;
@@ -392,7 +385,8 @@ void setStage() {
     }
     while (fscanf(file, "%c", &temp) != EOF) {
         switch (temp) {
-        case newline:
+        case '\n':
+        case '\r':
             if (check_stage == 1) {
                 sum_stage++;
             }
@@ -433,7 +427,8 @@ void getMapSize() {
     }
     while (fscanf(file, "%c", &temp) != EOF) {
         switch (temp) {
-        case newline:
+        case '\n':
+        case '\r':
             if (check_stage == 1) {
                 setMapMemory(temp_stage, width, height);
                 height = 0;
