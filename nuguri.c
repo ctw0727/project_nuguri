@@ -19,7 +19,7 @@
 // 맵 및 게임 요소 정의 (수정된 부분)
 //#define MAP_WIDTH 40  // 맵 너비를 40으로 변경
 //#define MAP_HEIGHT 20
-#define MAX_STAGES 2
+//#define MAX_STAGES 2
 #define MAX_ENEMIES 15 // 최대 적 개수 증가
 #define MAX_COINS 30   // 최대 코인 개수 증가
 
@@ -28,6 +28,14 @@
 #define DOWN 80
 #define LEFT 75
 #define RIGHT 77
+
+
+// 운영체제 분리 필요
+#ifdef _WIN32
+    #include <windows.h>   // Beep() 함수 사용
+#else
+    #include <unistd.h>    // usleep 같은 거 이미 쓰고 있을 수도 있어서 (맥/리눅스)
+#endif
 
 // 구조체 정의
 typedef struct {
@@ -48,9 +56,19 @@ char*** map;
 
 char DEBUGGING = 0;
 
+// 추가된 부분
+int MAX_STAGES;
+int* TEMP_HEIGHT;
+int* TEMP_WIDTH;
+
+#define MAX_HP 3   // 기본 최대 HP
+// 추가된 부분
+
 int player_x, player_y;
 int stage = 0;
 int score = 0;
+
+int hp = MAX_HP; // 플레이어 체력(초기값은 MAX_HP)
 
 // 플레이어 상태
 int is_jumping = 0;
@@ -72,11 +90,17 @@ void move_player(char input);
 void move_enemies();
 void check_collisions();
 void setMapMemory();
+//void setMapMemory(int s, int width, int height);
 void getMapSize();
 void readBanner(char* str, int height);
 void opening();
+void mallocFree();
 
 void DBG(char* str); //debugging print
+
+//추가된
+void setStage();
+void beep();
 
 
 int main() {
@@ -84,7 +108,16 @@ int main() {
     enable_raw_mode();
 	
     opening();
-	getMapSize();
+	  getMapSize();
+    
+    //추가된
+    setStage();
+    getMapSize();
+    MAP_HEIGHT = TEMP_HEIGHT[stage];
+    MAP_WIDTH = TEMP_WIDTH[stage];
+    //추가된
+  
+  
     load_maps();
     init_stage();
 
@@ -109,7 +142,10 @@ int main() {
         draw_game();
 
         if (map[stage][player_y][player_x] == 'E') {
+            mallocFree(stage);
             stage++;
+            getMapSize(stage);
+            load_maps();
             score += 100;
             if (stage < MAX_STAGES) {
                 init_stage();
@@ -205,6 +241,7 @@ void draw_game() {
 	if(DEBUGGING) delay(300);
     clrscr();
     printf("Stage: %d | Score: %d\n", stage + 1, score);
+    printf("HP: %d\n", hp); // 플레이어 체력 표시
     printf("조작: ← → (이동), ↑ ↓ (사다리), Space (점프), q (종료)\n");
 	
     char display_map[MAP_HEIGHT][MAP_WIDTH + 1];
@@ -349,14 +386,30 @@ void check_collisions() {
 	if(DEBUGGING) delay(300);
 	
     for (int i = 0; i < enemy_count; i++) {
-        if (player_x == enemies[i].x && player_y == enemies[i].y) {
-            score = (score > 50) ? score - 50 : 0;
+    if (player_x == enemies[i].x && player_y == enemies[i].y) {
+        // 적과 충돌: 체력 감소
+        hp--;
+        // 점수 패널티는 유지(원하면 제거 가능)
+        score = (score > 50) ? score - 50 : 0;
+
+        if (hp <= 0) {
+            // 게임 오버 처리: 화면 정리 후 종료
+            printf("\x1b[2J\x1b[H");
+            printf("게임 오버! HP가 모두 소진되었습니다.\n");
+            printf("최종 점수: %d\n", score);
+            disable_raw_mode();
+            exit(0);
+        } else {
+            // 체력이 남아있으면 현재 스테이지 재시작 (플레이어 위치 초기화)
             init_stage();
             return;
         }
     }
+}
+
     for (int i = 0; i < coin_count; i++) {
         if (!coins[i].collected && player_x == coins[i].x && player_y == coins[i].y) {
+            beep();
             coins[i].collected = 1;
             score += 20;
         }
@@ -365,6 +418,39 @@ void check_collisions() {
 	if(DEBUGGING) DBG("check_collisions(); ended");
 	if(DEBUGGING) delay(300);
 }
+
+
+//추가된
+void setStage() {
+    char temp;
+    int check_stage = 0, sum_stage = 1;
+
+    FILE* file = fopen("map.txt", "r");
+    if (!file) {
+        perror("map.txt 파일을 열 수 없습니다.");
+        exit(1);
+    }
+    while (fscanf(file, "%c", &temp) != EOF) {
+        switch (temp) {
+        case '\n':
+        case '\r':
+            if (check_stage == 1) {
+                sum_stage++;
+            }
+            check_stage = 1;
+            break;
+        default:
+            check_stage = 0;
+            break;
+        }
+    }
+    MAX_STAGES = sum_stage;
+    map = (char***)malloc(sizeof(char**) * MAX_STAGES);
+    TEMP_HEIGHT = (int*)malloc(sizeof(int) * MAX_STAGES);
+    TEMP_WIDTH = (int*)malloc(sizeof(int) * MAX_STAGES);
+    fclose(file);
+}
+//추가된
 
 // 맵 전역변수에 동적 메모리 할당
 void setMapMemory() {
@@ -386,15 +472,31 @@ void setMapMemory() {
 	if(DEBUGGING) delay(300);
 }
 
+void setMapMemory(int s, int width, int height) {
+    int i = 0;
+    TEMP_HEIGHT[s] = height;
+    TEMP_WIDTH[s] = width;
+    map[s] = (char**)malloc(sizeof(char*) * TEMP_HEIGHT[s]);  //MAP_HEIGHT
+    for (i = 0; i < TEMP_HEIGHT[s]; i++) {
+        map[s][i] = (char*)malloc(sizeof(char) * TEMP_WIDTH[s]); //MAP_WIDTH
+    }
+}
+
 // 맵 사이즈 계산
 void getMapSize() {
 	if(DEBUGGING) DBG("getMapSize(); started");
 	if(DEBUGGING) delay(300);
-	
+	  
+    /* 추가된 변수들
+    int temp_width = 0, width = 0, height = 0;
+    int temp_stage = 0, check_stage = 0;
+    char temp;
+    */
+    
     int height = 0;
     char buffer[45];
 
-    FILE *file = fopen("map.txt", "r");
+    FILE* file = fopen("map.txt", "r");
     if (!file) {
         perror("map.txt 파일을 열 수 없습니다.");
         exit(1);
@@ -416,6 +518,31 @@ void getMapSize() {
 		ㄴ 이렇게하면 buffer 사이즈만큼 설정됨, 45로 잡힌다는 거임
 	*/
     setMapMemory();
+    
+    /* 로직 참조할 부분
+    while (fscanf(file, "%c", &temp) != EOF) {
+        switch (temp) {
+        case '\n':
+        case '\r':
+            if (check_stage == 1) {
+                setMapMemory(temp_stage, width, height);
+                height = 0;
+                temp_stage++;
+                continue;
+            }
+            check_stage = 1;
+            height++;
+            width = temp_width;
+            temp_width = 0;
+            break;
+        default:
+            check_stage = 0;
+            temp_width++;
+            break;
+        }
+    }
+    setMapMemory(temp_stage, width, height + 1);
+    */
     fclose(file);
 	
 	//width 45
@@ -425,9 +552,11 @@ void getMapSize() {
 }
 
 void mallocFree() {
-    int i = 0, j = 0;
-    for(i = 0; i < 2; i++){
-        for(j = 0; j < MAP_HEIGHT; j++){
+    int i, j;
+    free(TEMP_HEIGHT);
+    free(TEMP_WIDTH);
+    for (i = 0; i < MAX_STAGES; i++) {
+        for (j = 0; j < TEMP_HEIGHT[i]; j++) {
             free(map[i][j]);
         }
         free(map[i]);
@@ -522,3 +651,16 @@ void DBG(char* str){
 	printf("//%s   ", str);
 	return;
 }
+
+// 따로 운영체제별 분리 필요할 것으로 보임
+void beep(void) {
+    #ifdef _WIN32
+        //윈도우
+        Beep(750, 100);
+    #else
+        //리눅스
+        printf("\a");
+        fflush(stdout);
+    #endif
+    }
+
