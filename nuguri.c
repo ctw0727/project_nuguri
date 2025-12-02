@@ -15,8 +15,10 @@
 
 #ifdef _WIN32
     #include <windows.h>   // Beep() 함수 사용
+    #define newline '\n' 
 #else
     #include <unistd.h>    // usleep 같은 거 이미 쓰고 있을 수도 있어서 (맥/리눅스)
+    #define newline '\r' 
 #endif
 
 
